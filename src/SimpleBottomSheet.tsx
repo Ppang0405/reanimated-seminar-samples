@@ -1,16 +1,52 @@
 import { PanGestureHandler } from "react-native-gesture-handler";
-import Animated, { useAnimatedGestureHandler } from "react-native-reanimated";
-import { Button, Text, View } from 'react-native'
+import Animated, { useAnimatedGestureHandler, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { Button, Text, useWindowDimensions, View } from 'react-native'
+import * as React from "react";
+
+const SPRING_CONFIG = {
+    damping: 80,
+    overshootClamping: true,
+    restDisplacementThreshold: 0.1,
+    restSpeedThreshold: 0.1,
+    stiffness: 500,
+}
 
 const SimpleBottomSheet = () => {   
-    const guestureHandler = useAnimatedGestureHandler({})
+    const dimensions = useWindowDimensions()
+    const guestureHandler = useAnimatedGestureHandler({
+        onStart(_, context) {
+            context.startTop = top.value;
+        },
+        onActive(event, context) {
+            top.value = context.startTop + event.translationY;
+        },
+        onEnd() {
+            // dismissing snap point
+            if (top.value > dimensions.height / 2 + 200) {
+                top.value = dimensions.height
+            } else {
+                top.value = dimensions.height / 2
+            }
+        }
+    })
+    const top = useSharedValue(dimensions.height)
+    const style = useAnimatedStyle(() => {
+        return {
+            top: withSpring(top.value, SPRING_CONFIG),
+        }
+    })
 
     return (
         <>
             <View style={[{flex: 1,
             justifyContent: 'center',
             alignItems: 'center'}]}>
-                <Button title="Open Sheet" onPress={() => {}} />
+                <Button title="Open Sheet" onPress={() => {
+                    top.value = withSpring(
+                        dimensions.height / 2,
+                        SPRING_CONFIG,
+                    )
+                }} />
             </View>
 
             <PanGestureHandler onGestureEvent={guestureHandler}>
@@ -33,7 +69,7 @@ const SimpleBottomSheet = () => {
                     padding: 20,
                     justifyContent: 'center',
                     alignItems: 'center',
-                }]}>
+                }, style]}>
                     <Text>{'Sheet >'}</Text>
                 </Animated.View>
             </PanGestureHandler>
